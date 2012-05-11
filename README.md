@@ -6,6 +6,8 @@ Middleware for `Meteor.methods`.
 
 [Check it out](http://filters.meteor.com/)
 
+Kinda pointless, just exercises the code. See code for demo below.
+
 ## Usage
 
 ### Setup your `Meteor.methods`, nothing new!
