@@ -58,9 +58,7 @@ Filter._wrapHandler = function(handler, filter, name) {
     methodName = Meteor.is_server ? _.first(argumentsArray) : argumentsArray.shift();
 
     // Don't mess around w/ it if it's one of Meteor's magic data methods
-    // TODO: the _.isObject conditional might only be a test suite thing, research this
-    // NOTE: see tinytest stack trace in console
-    if (_.isObject(methodName) || isDataRoute.test(methodName)) {
+    if (isDataRoute.test(methodName)) {
       return handler.apply(this, arguments);
     }
 
