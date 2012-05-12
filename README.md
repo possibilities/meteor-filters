@@ -1,10 +1,18 @@
-# Middleware filters for Meteor
+# Middleware Filters for Meteor
 
 Middleware filters for Meteor. Filter `Meteor.methods` on the server and `Meteor.call` and `Meteor.apply` on the client.
 
 [Check out the demo!](http://filters.meteor.com/)
 
 The demo is pointless... just exercises the code. See code for demo below.
+
+## Installation
+
+First download it and add it to your Meteor packages
+
+Now add it to your app
+
+    meteor add filters
 
 ## Usage
 
