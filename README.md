@@ -1,4 +1,4 @@
-# Middleware filters for Meteor.methods
+# Middleware filters for Meteor
 
 Middleware filters for Meteor. Filter `Meteor.methods` on the server and `Meteor.call` and `Meteor.apply` on the client.
 
