@@ -2,9 +2,7 @@
 
 Middleware for `Meteor.methods`.
 
-## Demo
-
-[Check it out](http://filters.meteor.com/)
+[Check out the demo!](http://filters.meteor.com/)
 
 Kinda pointless, just exercises the code. See code for demo below.
 
