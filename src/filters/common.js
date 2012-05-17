@@ -4,7 +4,7 @@ var Filter = Filter || {};
 
 FilterHelpers = {
   appliesTo: function(methodName) {
-    return (
+    return !(
       // It's not in the `only` list
       (this.only && !_.contains(this.only, methodName))
         ||
@@ -77,7 +77,7 @@ Filter._wrapHandler = function(handler, filter, name) {
     }
 
     // Obey except/only on client (we figure out server at startup)
-    if (Meteor.is_client && filter.appliesTo(methodName)) {
+    if (Meteor.is_client && !filter.appliesTo(methodName)) {
       return handler.apply(this, arguments);
     }
 
