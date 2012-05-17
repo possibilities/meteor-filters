@@ -29,6 +29,10 @@ var testFilterReturnsArguments = function(funk, next) {
   return funk + 'Duff';
 };
 
+var testFilterForMethodDefinedInFuture = function(funk, next) {
+  return funk + 'Delorian';
+};
+
 var testFilterMultiFilters1 = function(funk, next) {
   return funk + '1';
 };
@@ -46,5 +50,10 @@ Filter.methods([
   testFilterReturnsArguments, { only: 'testMethodReturnsArguments' },
   testFilterMultiFilters1, { only: 'testMethodMultiFilters' },
   testFilterMultiFilters2, { only: 'testMethodMultiFilters' },
-  testFilterMultiFilters3, { only: 'testMethodMultiFilters' }
+  testFilterMultiFilters3, { only: 'testMethodMultiFilters' },
+  testFilterForMethodDefinedInFuture, { only: 'testMethodDefinedInFuture' }
 ]);
+
+Meteor.methods({
+  testMethodDefinedInFuture: testMethod
+});

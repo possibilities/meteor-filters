@@ -13,4 +13,7 @@ Tinytest.add("filters - server", function (test) {
   
   var testResult = Meteor.call('testMethodMultiFilters', 'fraggleRock');
   test.equal(testResult, 'fraggleRock123Funk');
+  
+  var testResult = Meteor.call('testMethodDefinedInFuture', 'mcfly');
+  test.equal(testResult, 'mcflyDelorianFunk');
 });

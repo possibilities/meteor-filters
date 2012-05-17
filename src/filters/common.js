@@ -4,6 +4,7 @@ var Filter = Filter || {};
 
 FilterHelpers = {
   appliesTo: function(methodName) {
+    // Notice we're negating the whole this
     return !(
       // It's not in the `only` list
       (this.only && !_.contains(this.only, methodName))
@@ -11,6 +12,21 @@ FilterHelpers = {
       // Or it's on the `except` list
       (this.except && _.contains(this.except, methodName))
     );
+  },  
+  applyToMethods: function(methods) {
+    var self = this;
+    _.each(methods, function(handler, methodName) {
+      // Obey except/only on server (we figure out client at run time)
+      if (Meteor.is_server && !self.appliesTo(methodName)) {
+        return false;
+      }
+
+      // Wrap original method
+      var wrappedMethod = Filter._wrapHandler(handler, self, methodName);
+      if (wrappedMethod) {
+        Meteor.default_server.method_handlers[methodName] = wrappedMethod;
+      }
+    });
   }
 };
 

@@ -1,25 +1,30 @@
 Filter.methods = function(filters) {
-  // If it's whitelisted and it's not blacklisted wrap the filter around the method
-  var addFilter = function(filter) {
-    _.extend(filter, FilterHelpers);
-    _.each(Meteor.default_server.method_handlers, function(handler, methodName) {
-
-      // Obey except/only on server (we figure out client at run time)
-      if (Meteor.is_server && !filter.appliesTo(methodName)) {
-        return false;
-      }
-
-      // Wrap original method
-      var wrappedMethod = Filter._wrapHandler(handler, filter, methodName);
-      if (wrappedMethod) {
-        Meteor.default_server.method_handlers[methodName] = wrappedMethod;
-      }
-    });
-  };
+  var self = this;
+  // Cache them so we can apply them to `Meteor.methods` defined in the future
+  this._filters = this._filters || [];
 
   // Normalize and wrap Meteor methods with filters based on configuration
   filters = Filter._parseConfiguration(filters);
-  _.each(filters, function (filter) {
-    addFilter(filter);
+  _.each(filters, function(filter) {
+    // Extend it
+    _.extend(filter, FilterHelpers);
+    // Cache it
+    self._filters.push(filter);
+    // Apply it
+    filter.applyToMethods(Meteor.default_server.method_handlers);
   });
+};
+
+// Apply to `Meteor.methods` that were defined after the filters were added
+var originalMethods = Meteor.methods;
+Meteor.methods = function(methods) {
+  var result = originalMethods.apply(this, arguments);
+
+  if (Filter._filters) {
+    _.each(Filter._filters, function(filter) {
+      filter.applyToMethods(methods);
+    });
+  }
+
+  return result;
 };
