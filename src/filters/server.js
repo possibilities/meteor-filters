@@ -16,10 +16,8 @@ Filter.methods = function(filters) {
   };
 
   // Normalize and wrap Meteor methods with filters based on configuration
-  Meteor.startup(function() {
-    filters = Filter._parseConfiguration(filters);
-    _.each(filters, function (filter) {
-      addFilter(filter);
-    });
+  filters = Filter._parseConfiguration(filters);
+  _.each(filters, function (filter) {
+    addFilter(filter);
   });
 };
