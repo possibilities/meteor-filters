@@ -1,6 +1,18 @@
 var Filter = Filter || {};
 
-// Helpers
+// FilterHelpers
+
+FilterHelpers = {
+  appliesTo: function(methodName) {
+    return (
+      // It's not in the `only` list
+      (this.only && !_.contains(this.only, methodName))
+        ||
+      // Or it's on the `except` list
+      (this.except && _.contains(this.except, methodName))
+    );
+  }
+};
 
 // Makes an array from a scalar unless it's undefined
 Filter._makeArrayOrUndefined = function(val) {
@@ -50,6 +62,8 @@ Filter._wrapHandler = function(handler, filter, name) {
     return;
   }
 
+  _.extend(filter, FilterHelpers);
+
   return function() {
     var returnValue, val, callback, handlerContext, methodName;
     var argumentsArray = _.toArray(arguments);
@@ -62,19 +76,8 @@ Filter._wrapHandler = function(handler, filter, name) {
       return handler.apply(this, arguments);
     }
 
-    // Obey except/only
-    // TODO: similar server logic in server.js
-    if (
-      Meteor.is_client
-        &&
-      (
-        // It's not in the `only` list
-        (filter.only && !_.contains(filter.only, methodName))
-          ||
-        // Or it's on the `except` list
-        (filter.except && _.contains(filter.except, methodName))
-      )
-    ) {
+    // Obey except/only on client (we figure out server at startup)
+    if (Meteor.is_client && filter.appliesTo(methodName)) {
       return handler.apply(this, arguments);
     }
 
