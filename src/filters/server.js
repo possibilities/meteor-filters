@@ -3,11 +3,13 @@ Filter.methods = function(filters) {
   var addFilter = function(filter) {
     _.extend(filter, FilterHelpers);
     _.each(Meteor.default_server.method_handlers, function(handler, methodName) {
+
       // Obey except/only on server (we figure out client at run time)
       if (Meteor.is_server && !filter.appliesTo(methodName)) {
         return false;
       }
 
+      // Wrap original method
       var wrappedMethod = Filter._wrapHandler(handler, filter, methodName);
       if (wrappedMethod) {
         Meteor.default_server.method_handlers[methodName] = wrappedMethod;
