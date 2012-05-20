@@ -15,14 +15,14 @@ FilterHelpers = {
   },  
   applyToMethods: function(methods) {
     var self = this;
-    _.each(methods, function(handler, methodName) {
+    _.each(methods, function(method, methodName) {
       // Obey except/only on server (we figure out client at run time)
       if (Meteor.is_server && !self.appliesTo(methodName)) {
         return false;
       }
 
       // Wrap original method
-      var wrappedMethod = Filter._wrapHandler(handler, self, methodName);
+      var wrappedMethod = Filter._wrapHandler(method, self, methodName);
       if (wrappedMethod) {
         Meteor.default_server.method_handlers[methodName] = wrappedMethod;
       }
