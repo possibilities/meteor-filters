@@ -6,8 +6,6 @@ Filter.methods = function(filters) {
   // Normalize and wrap Meteor methods with filters based on configuration
   filters = Filter._parseConfiguration(filters);
   _.each(filters, function(filter) {
-    // Extend it
-    _.extend(filter, FilterHelpers);
     // Cache it
     self._filters.push(filter);
     // Apply it

@@ -88,6 +88,9 @@ Filter._parseConfiguration = function(filters) {
     // Something to grab onto
     filter._id = Meteor.uuid();
 
+    // Extend it
+    _.extend(filter, FilterHelpers);
+
     // Ok, it's ready
     normalized.unshift(filter);
   }
@@ -101,8 +104,6 @@ Filter._wrapHandler = function(handler, filter, name) {
   if (isDataRoute.test(name)) {
     return;
   }
-
-  _.extend(filter, FilterHelpers);
 
   return function() {
     var returnValue, val, callback, methodName;

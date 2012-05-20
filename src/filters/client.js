@@ -1,9 +1,6 @@
 Filter.methods = function(filters) {
   // If it's whitelisted and it's not blacklisted wrap the filter around the method
   var addFilter = function(filter) {
-    // Extend it
-    _.extend(filter, FilterHelpers);
-
     // Apply to `call` and `apply`
     filter.applyToMethods({
       call: Meteor.call,
