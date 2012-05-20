@@ -64,3 +64,9 @@ Now add it to your app
     //   { handler: helloFilter, only: 'echoYngwie' },
     //   { handler: howdyFilter, only: 'echoRebecca' }
     // ]);
+
+## TODO
+
+Allow scalar (method or object) arguments to Filter.methods when defining just one
+
+Allow returning `arguments` from filter, seems like you have to _.toArray it now
