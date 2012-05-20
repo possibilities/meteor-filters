@@ -13,20 +13,42 @@ FilterHelpers = {
       (this.except && _.contains(this.except, methodName))
     );
   },  
+  
   applyToMethods: function(methods) {
     var self = this;
     _.each(methods, function(method, methodName) {
+
       // Obey except/only on server (we figure out client at run time)
       if (Meteor.is_server && !self.appliesTo(methodName)) {
         return false;
       }
 
+      // Bookkeeping
+      self.registerForMethod(methodName);
+
       // Wrap original method
       var wrappedMethod = Filter._wrapHandler(method, self, methodName);
       if (wrappedMethod) {
-        Meteor.default_server.method_handlers[methodName] = wrappedMethod;
+        if (Meteor.is_server) {
+          Meteor.default_server.method_handlers[methodName] = wrappedMethod;
+        } else {
+          Meteor[methodName] = wrappedMethod;
+        }
       }
     });
+  },
+  registerForMethod: function(methodName) {
+    Filter._registry = Filter._registry || {};
+    Filter._registry[methodName] = Filter._registry[methodName] || {};
+    Filter._registry[methodName].firstFilter = this._id;
+    if (!Filter._registry[methodName].lastFilter) {
+      Filter._registry[methodName].lastFilter = this._id;
+    }
+  },
+  isLastForMethod: function(methodName) {
+    if (Filter._registry && Filter._registry[methodName]) {
+      return Filter._registry[methodName].lastFilter === this._id;
+    }
   }
 };
 
@@ -41,7 +63,6 @@ Filter._makeArrayOrUndefined = function(val) {
 
 Filter._parseConfiguration = function(filters) {
   // Munge filter setup info so we can do cool shorthand configuration tricks
-  var self = this;
   var handler, next;
   var normalized = [];
 
@@ -64,6 +85,9 @@ Filter._parseConfiguration = function(filters) {
     filter.except = Filter._makeArrayOrUndefined(filter.except);
     filter.only = Filter._makeArrayOrUndefined(filter.only);
 
+    // Something to grab onto
+    filter._id = Meteor.uuid();
+
     // Ok, it's ready
     normalized.unshift(filter);
   }
@@ -81,7 +105,7 @@ Filter._wrapHandler = function(handler, filter, name) {
   _.extend(filter, FilterHelpers);
 
   return function() {
-    var returnValue, val, callback, handlerContext, methodName;
+    var returnValue, val, callback, methodName;
     var argumentsArray = _.toArray(arguments);
 
     // Get the current method name
@@ -97,13 +121,13 @@ Filter._wrapHandler = function(handler, filter, name) {
       return handler.apply(this, arguments);
     }
 
-    // A context for sharing data with the handler
-    var handlerContext = {
+    if (!Filter._registry[name].context) {
+      Filter._registry[name].context = {};
       // A convenience method that we give to the filter for returning stuff
-      next: function() {
-        handlerContext.returnValue = _.toArray(arguments);
-      }
-    };
+      Filter._registry[name].context.next = function() {
+        Filter._registry[name].context.returnValue = _.toArray(arguments);
+      };
+    }
     
     // On the client we have to perform major surgery on
     // arguments before and after the filter runs
@@ -119,10 +143,10 @@ Filter._wrapHandler = function(handler, filter, name) {
 
       // Add the `next` convenience method to the end of the 
       // filter's call arguments
-      argumentsArray.push(handlerContext.next);
+      argumentsArray.push(Filter._registry[name].context.next);
 
       // Run the filter finally!
-      returnValue = filter.handler.apply(handlerContext, argumentsArray);
+      returnValue = filter.handler.apply(Filter._registry[name].context, argumentsArray);
 
       // Get rid of next convenience method
       if (_.isFunction(callback)) {
@@ -131,7 +155,7 @@ Filter._wrapHandler = function(handler, filter, name) {
 
       // Figure out the results of the filter regardless of
       // how the results are returned
-      val = (handlerContext.returnValue || returnValue);
+      val = (Filter._registry[name].context.returnValue || returnValue);
       
       // If the results aren't an array make it so
       argumentsArray = Filter._makeArrayOrUndefined(val);
@@ -145,19 +169,25 @@ Filter._wrapHandler = function(handler, filter, name) {
       argumentsArray.unshift(methodName);
     } else {
       // Put `next` convenience method at the end the filter's call arguments
-      argumentsArray.push(handlerContext.next);
+      argumentsArray.push(Filter._registry[name].context.next);
 
       // Apply the filter
-      returnValue = filter.handler.apply(handlerContext, argumentsArray);
+      returnValue = filter.handler.apply(Filter._registry[name].context, argumentsArray);
 
       // Figure out the results of the filter regardless of
       // how the results are returned
-      val = (handlerContext.returnValue || returnValue);
+      val = (Filter._registry[name].context.returnValue || returnValue);
       // If the results aren't an array make it so
       argumentsArray = Filter._makeArrayOrUndefined(val);
     }
 
     // Wheh! Return the wrapped filter
-    return handler.apply(handlerContext, argumentsArray);
+    var ret = handler.apply(Filter._registry[name].context, argumentsArray);
+
+    if (filter.isLastForMethod(name)) {
+      delete Filter._registry[name].context;
+    }
+
+    return ret;
   };
 };
