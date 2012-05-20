@@ -185,13 +185,15 @@ Filter._wrapHandler = function(handler, filter, name) {
       argumentsArray = Filter._makeArrayOrUndefined(val);
     }
 
-    // Wheh! Return the wrapped filter
+    // Get the result from the real wrapped method
     var ret = handler.apply(currentFilter.context, argumentsArray);
 
+    // Clear the context if we're done
     if (filter.isLastForMethod(name)) {
       delete currentFilter.context;
     }
 
+    // Wheh! Return the wrapped filter
     return ret;
   };
 };
