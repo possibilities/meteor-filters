@@ -8,6 +8,7 @@ Meteor.methods({
   testMethodReturnsNext: testMethod,
   testMethodReturnsArguments: testMethod,
   testMethodMultiFilters: testMethod,
+  testMultiFiltersSeperateDeclarations: testMethod,
   testMethodMultiFilterContext: testMethod,
   echoArgument: function(funk) {
     return funk;
@@ -44,6 +45,13 @@ var testFilterMultiFilters3 = function(funk, next) {
   return funk + '3';
 };
 
+var testFilterMultiFiltersSeperateDeclarations1 = function(funk, next) {
+  return funk + '1';
+};
+var testFilterMultiFiltersSeperateDeclarations2 = function(funk, next) {
+  return funk + '2';
+};
+
 var testFilterMultiFilterContext1 = function(funk, next) {
   this.testAttribute = 'Munk';
   return funk;
@@ -65,10 +73,15 @@ Filter.methods([
   testFilterMultiFilters1, { only: 'testMethodMultiFilters' },
   testFilterMultiFilters2, { only: 'testMethodMultiFilters' },
   testFilterMultiFilters3, { only: 'testMethodMultiFilters' },
+  testFilterMultiFiltersSeperateDeclarations1, { only: 'testMultiFiltersSeperateDeclarations' },
   testFilterMultiFilterContext1, { only: 'testMethodMultiFilterContext' },
   testFilterMultiFilterContext2, { only: 'testMethodMultiFilterContext' },
   testFilterMultiFilterContext3, { only: 'testMethodMultiFilterContext' },
   testFilterForMethodDefinedInFuture, { only: 'testMethodDefinedInFuture' }
+]);
+
+Filter.methods([
+  testFilterMultiFiltersSeperateDeclarations2, { only: 'testMultiFiltersSeperateDeclarations' }
 ]);
 
 Meteor.methods({

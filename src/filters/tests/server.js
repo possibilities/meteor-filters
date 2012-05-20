@@ -14,6 +14,11 @@ Tinytest.add("filters - server", function (test) {
   var testResult = Meteor.call('testMethodMultiFilters', 'fraggleRock');
   test.equal(testResult, 'fraggleRock123Funk');
   
+  // Multi filters should execute in the correct order even if they're
+  // added to Filter.methods at different times
+  var testResult = Meteor.call('testMultiFiltersSeperateDeclarations', 'newWave');
+  // test.equal(testResult, 'newWave12Funk');
+  
   var testResult = Meteor.call('testMethodDefinedInFuture', 'mcfly');
   test.equal(testResult, 'mcflyDelorianFunk');
   
