@@ -171,6 +171,8 @@ Filter._wrapHandler = function(handler, filter, name) {
 
       // Get the method name back in front of the other arguments
       argumentsArray.unshift(methodName);
+      
+    // We're on the server
     } else {
       // Put `next` convenience method at the end the filter's call arguments
       argumentsArray.push(currentFilter.context.next);
