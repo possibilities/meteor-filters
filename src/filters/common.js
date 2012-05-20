@@ -121,11 +121,14 @@ Filter._wrapHandler = function(handler, filter, name) {
       return handler.apply(this, arguments);
     }
 
-    if (!Filter._registry[name].context) {
-      Filter._registry[name].context = {};
+    // Shortcut to current filter
+    var currentFilter = Filter._registry[name];
+    // Build new context if this is the first filter in chain
+    if (!currentFilter.context) {
+      currentFilter.context = {};
       // A convenience method that we give to the filter for returning stuff
-      Filter._registry[name].context.next = function() {
-        Filter._registry[name].context.returnValue = _.toArray(arguments);
+      currentFilter.context.next = function() {
+        currentFilter.context.returnValue = _.toArray(arguments);
       };
     }
     
@@ -143,10 +146,10 @@ Filter._wrapHandler = function(handler, filter, name) {
 
       // Add the `next` convenience method to the end of the 
       // filter's call arguments
-      argumentsArray.push(Filter._registry[name].context.next);
+      argumentsArray.push(currentFilter.context.next);
 
       // Run the filter finally!
-      returnValue = filter.handler.apply(Filter._registry[name].context, argumentsArray);
+      returnValue = filter.handler.apply(currentFilter.context, argumentsArray);
 
       // Get rid of next convenience method
       if (_.isFunction(callback)) {
@@ -155,7 +158,7 @@ Filter._wrapHandler = function(handler, filter, name) {
 
       // Figure out the results of the filter regardless of
       // how the results are returned
-      val = (Filter._registry[name].context.returnValue || returnValue);
+      val = (currentFilter.context.returnValue || returnValue);
       
       // If the results aren't an array make it so
       argumentsArray = Filter._makeArrayOrUndefined(val);
@@ -169,23 +172,23 @@ Filter._wrapHandler = function(handler, filter, name) {
       argumentsArray.unshift(methodName);
     } else {
       // Put `next` convenience method at the end the filter's call arguments
-      argumentsArray.push(Filter._registry[name].context.next);
+      argumentsArray.push(currentFilter.context.next);
 
       // Apply the filter
-      returnValue = filter.handler.apply(Filter._registry[name].context, argumentsArray);
+      returnValue = filter.handler.apply(currentFilter.context, argumentsArray);
 
       // Figure out the results of the filter regardless of
       // how the results are returned
-      val = (Filter._registry[name].context.returnValue || returnValue);
+      val = (currentFilter.context.returnValue || returnValue);
       // If the results aren't an array make it so
       argumentsArray = Filter._makeArrayOrUndefined(val);
     }
 
     // Wheh! Return the wrapped filter
-    var ret = handler.apply(Filter._registry[name].context, argumentsArray);
+    var ret = handler.apply(currentFilter.context, argumentsArray);
 
     if (filter.isLastForMethod(name)) {
-      delete Filter._registry[name].context;
+      delete currentFilter.context;
     }
 
     return ret;
