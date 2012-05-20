@@ -85,7 +85,7 @@ Filter._wrapHandler = function(handler, filter, name) {
     var argumentsArray = _.toArray(arguments);
 
     // Get the current method name
-    methodName = Meteor.is_server ? _.first(argumentsArray) : argumentsArray.shift();
+    methodName = Meteor.is_server ? name : argumentsArray.shift();
 
     // Don't mess around w/ it if it's one of Meteor's magic data methods
     if (isDataRoute.test(methodName)) {
