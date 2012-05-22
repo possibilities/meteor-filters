@@ -113,7 +113,7 @@ Filter.methods = function(filters) {
 
 // Load the method's filters, we run this only the first time
 // the method gets executed
-Filter.loadFiltersForMethod = function(methodName) {
+Filter.loadFilters = function(methodName) {
 
   // We haven't loaded this method's filters yet
   if (!Filter._registry[methodName]) {
@@ -160,7 +160,7 @@ Filter._wrapMethod = function _wrapMethod(method, methodName) {
       return method.apply(this, args);
 
     // If we haven't already, load the filters for this method
-    Filter.loadFiltersForMethod(methodName);
+    Filter.loadFilters(methodName);
     
     // Do the actual business of running each filter
     var ret = Filter.applyFilters(methodName, args);
