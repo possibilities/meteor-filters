@@ -1,5 +1,7 @@
 # Middleware Filters for Meteor
 
+Middleware filters for Meteor.methods and friends
+
 ## What problem does this solve?
 
 The whole point of this library is to avoid boilerplate code and duplication. Let's say you have some `Meteor.methods` that looks like this:
@@ -143,7 +145,7 @@ When you write a filter the idea is that it receives the arguments intended for 
       return next(a, b, c);
     };
 
-If you return nothing causes the current filters arguments to be passed on as-is making these equivalent:
+Returning nothing causes the current filter's arguments to be passed on as-is making these equivalent:
 
     var myFilter4 = function(a, b, c) {
       // do something!

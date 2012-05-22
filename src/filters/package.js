@@ -1,5 +1,5 @@
 Package.describe({
-  summary: "Middleware filters for Meteor.methods"
+  summary: "Middleware filters for Meteor.methods and friends"
 });
 
 Package.on_use(function (api) {
