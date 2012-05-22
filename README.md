@@ -2,9 +2,62 @@
 
 Filters for `Meteor.methods` on the server and `Meteor.call` and `Meteor.apply` on the client.
 
-## Summary
+## What problem does this solve?
 
-TODO
+The whole point of this library is to avoid boilerplate code and duplication. Let's say you have some `Meteor.method`s that looks like this:
+
+    Meteor.methods({
+
+      // I hope my bank is more secure than this!
+      withdraw: function(bankAccountNumber, amount) {
+        if (!bankAccountNumber) {
+          throw Meteor.Error(500, "Gotta have an account number silly!");
+        }
+        // etc...
+      },
+
+      // Save some money fool!
+      deposit: function(bankAccountNumber, amount) {
+        if (!bankAccountNumber) {
+          throw Meteor.Error(500, "Gotta have an account number silly!");
+        }
+        // etc...
+      }
+    });
+
+And on the client you're calling withdraw like:
+
+    var bankAccountNumber = Session.get('bankAccountNumber');
+    Meteor.call('withdraw', bankAccountNumber, 1);
+
+And somewhere else on the client you're calling deposit like:    
+
+    var bankAccountNumber = Session.get('bankAccountNumber');
+    Meteor.call('deposit', bankAccountNumber, 2);
+
+Lots of boilerplate. Lots of duplication. Right?
+
+## The filter solution!
+
+When you write and apply a filter your server code becomes:
+
+    Meteor.methods({
+
+      withdraw: function(amount) {
+        // etc...
+      },
+
+      deposit: function(amount) {
+        // etc...
+      }
+    });
+
+And your client code becomes:
+
+    Meteor.call('withdraw', 1);
+    Meteor.call('deposit', 2);
+
+Nice, eh?
 
 ## Usage
 
@@ -61,7 +114,7 @@ Or if you prefer you can use this *sexier*(?) syntax
       howdyFilter, { only: 'echoRebecca' }
     ]);
 
-If you have just one filter just slap it in there in all it's scalar glory
+If you only have one filter just slap it in there in all it's scalar glory
 
     Filter.methods(howdyFilter);
 
