@@ -2,6 +2,7 @@ var Filter = { _registry: {} };
 
 // Prepare target `Meteor.methods` for filtering
 Filter.prepareMethods = function(methods) {
+  var self = this;
   var methodObj;
 
   // Wrap methods so we can hook into filters at run time
@@ -11,7 +12,7 @@ Filter.prepareMethods = function(methods) {
     methodObj = Meteor.is_server ? methods : Meteor;
   
     // Wrap method
-    methodObj[methodName] = Filter._wrapMethod(method, methodName);
+    methodObj[methodName] = self._wrapMethod(method, methodName);
   });
 };
 
@@ -19,7 +20,7 @@ Filter.prepareMethods = function(methods) {
 Filter.applyFilters = function(methodName, args) {
   var callback;
   var context = {};
-  var filters = Filter._registry[methodName].filters;
+  var filters = this._registry[methodName].filters;
 
   // On the client the call method name is dynamic
   var callMethod = Meteor.is_client ? args.shift() : methodName;
@@ -107,29 +108,30 @@ Filter.applyFilters = function(methodName, args) {
 // into the _filters so we can get them later
 Filter.methods = function(filters) {
   this._filters = this._filters || [];
-  this._filters.unshift(Filter._parseConfiguration(filters));
+  this._filters.unshift(this._parseConfiguration(filters));
   this._filters = _.flatten(this._filters);
 };
 
 // Load the method's filters, we run this only the first time
 // the method gets executed
 Filter.loadFilters = function(methodName) {
+  var self = this;
 
   // We haven't loaded this method's filters yet
-  if (!Filter._registry[methodName]) {
+  if (!self._registry[methodName]) {
 
     // Default registry entry
-    Filter._registry[methodName] = Filter._registry[methodName] || {
+    self._registry[methodName] = self._registry[methodName] || {
       filters: []
     };
 
     // Add each method filter for the method to the registry
-    _.each(Filter._filters, function(filter, index) {
+    _.each(self._filters, function(filter, index) {
       
       // If we're on the server we check that the filter should apply to method,
       // on the client we do this at runtime
       if (Meteor.is_client || filter.appliesTo(methodName)) {
-        Filter._registry[methodName].filters.unshift(filter);
+        self._registry[methodName].filters.unshift(filter);
       }
     });
   }
@@ -160,10 +162,10 @@ Filter._wrapMethod = function _wrapMethod(method, methodName) {
       return method.apply(this, args);
 
     // If we haven't already, load the filters for this method
-    Filter.loadFilters(methodName);
+    self.loadFilters(methodName);
     
     // Do the actual business of running each filter
-    var ret = Filter.applyFilters(methodName, args);
+    var ret = self.applyFilters(methodName, args);
     
     // Run the original method with the filtered context and arguments
     return method.apply(ret.context, ret.args);
@@ -172,8 +174,10 @@ Filter._wrapMethod = function _wrapMethod(method, methodName) {
 
 // Munge filter setup info so we can do cool shorthand configuration tricks
 Filter._parseConfiguration = function(filters) {
+  var self = this;
   var handler, next;
   var normalized = [];
+  filters = this._makeArrayOrUndefined(filters);
 
   while (filter = filters.shift()) {
     // Peek at the the next filter
@@ -200,8 +204,8 @@ Filter._parseConfiguration = function(filters) {
       filter = { handler: filter };
 
     // Allow scalar values for `except` and `only` configuration
-    filter.except = Filter._makeArrayOrUndefined(filter.except);
-    filter.only = Filter._makeArrayOrUndefined(filter.only);
+    filter.except = self._makeArrayOrUndefined(filter.except);
+    filter.only = self._makeArrayOrUndefined(filter.only);
 
     // Extend it
     _.extend(filter, FilterHelpers);

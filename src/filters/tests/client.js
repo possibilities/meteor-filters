@@ -8,7 +8,7 @@ Filter.methods([
   addFunkFilter, { only: 'testMethod' }
 ]);
 
-testAsyncMulti("filters - client", [
+testAsyncMulti("filters - client filters", [
 
   // Should apply client and server side filters
   function(test, expect) {
