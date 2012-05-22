@@ -67,6 +67,8 @@ TODO
 
 ### Writing filters (client or server)
 
+#### Return values
+
 When you write a filter the idea is that it receives the arguments intended for the target `Meteor.method` and then it either passes those arguments to the next filter and eventually to the target `Meteor.method`. `Filter.methods` is very flexible about how how the next filter is called, these are all equivalent:
 
     var myFilter1 = function(a, b, c) {
