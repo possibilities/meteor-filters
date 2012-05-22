@@ -1,3 +1,5 @@
+// Setup stuff we need for tests
+
 var testMethod = function(funk) {
   return funk + 'Funk';
 };
@@ -10,6 +12,8 @@ Meteor.methods({
   testMethodMultiFilters: testMethod,
   testMultiFiltersSeperateDeclarations: testMethod,
   testMethodMultiFilterContext: testMethod,
+  testMethodReturnsNothing: testMethod,
+  testMethodReturnsFalse: testMethod,
   echoArgument: function(funk) {
     return funk;
   }
@@ -65,6 +69,12 @@ var testFilterMultiFilterContext3 = function(funk, next) {
   return funk + this.testAttribute;
 };
 
+var testFilterReturnsNothing = function(funk) {};
+
+var testFilterReturnsFalse = function(funk) {
+  return false;
+};
+
 Filter.methods([
   testFilter, { only: 'testMethod' },
   testFilterCallsNext, { only: 'testMethodCallsNext' },
@@ -77,7 +87,9 @@ Filter.methods([
   testFilterMultiFilterContext1, { only: 'testMethodMultiFilterContext' },
   testFilterMultiFilterContext2, { only: 'testMethodMultiFilterContext' },
   testFilterMultiFilterContext3, { only: 'testMethodMultiFilterContext' },
-  testFilterForMethodDefinedInFuture, { only: 'testMethodDefinedInFuture' }
+  testFilterForMethodDefinedInFuture, { only: 'testMethodDefinedInFuture' },
+  testFilterReturnsNothing, { only: 'testMethodReturnsNothing' },
+  testFilterReturnsFalse, { only: 'testMethodReturnsFalse' }
 ]);
 
 Filter.methods([

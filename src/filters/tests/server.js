@@ -1,3 +1,5 @@
+// Server side tests
+
 Tinytest.add("filters - server", function (test) {
   var testResult = Meteor.call('testMethod', 'fuffy');
   test.equal(testResult, 'fuffyFuffFunk');
@@ -17,8 +19,9 @@ Tinytest.add("filters - server", function (test) {
   // Multi filters should execute in the correct order even if they're
   // added to Filter.methods at different times
   var testResult = Meteor.call('testMultiFiltersSeperateDeclarations', 'newWave');
-  // test.equal(testResult, 'newWave12Funk');
+  test.equal(testResult, 'newWave12Funk');
   
+  // This shouldn't be an issue anymore but keeping test just in case
   var testResult = Meteor.call('testMethodDefinedInFuture', 'mcfly');
   test.equal(testResult, 'mcflyDelorianFunk');
   
@@ -31,4 +34,13 @@ Tinytest.add("filters - server", function (test) {
   // context between calls
   test.equal(testResult1, expected);
   test.equal(testResult2, expected);
+  
+  // If the filter returns nothing _.toArray(args) should be passed
+  // to next filter/method
+  var testResult = Meteor.call('testMethodReturnsNothing', 'mcfly');
+  test.equal(testResult, 'mcflyFunk');
+
+  // Make sure the test filter can return false
+  var testResult = Meteor.call('testMethodReturnsFalse');
+  test.equal(testResult, 'falseFunk');
 });
