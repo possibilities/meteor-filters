@@ -2,6 +2,10 @@
 
 Filters for `Meteor.methods` on the server and `Meteor.call` and `Meteor.apply` on the client.
 
+## Summary
+
+TODO
+
 ## Usage
 
 ### Server-side
