@@ -153,3 +153,7 @@ If you return nothing causes the current filters arguments to be passed on as-is
       // do something!
       return _.toArray(arguments);
     };
+
+## TODO
+
+Make the examples suck a lot less
