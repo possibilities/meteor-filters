@@ -61,6 +61,12 @@ Or if you prefer you can use this *sexier*(?) syntax
       howdyFilter, { only: 'echoRebecca' }
     ]);
 
+If you have just one filter just slap it in there in all it's scalar glory
+
+    Filter.methods(howdyFilter);
+
+    Filter.methods({ handler: howdyFilter, only: 'southernMethod' });
+
 ### Client-side
 
 TODO
@@ -96,8 +102,3 @@ If you return nothing causes the current filters arguments to be passed on as-is
       // do something!
       return _.toArray(arguments);
     };
-
-
-## TODO
-
-Allow scalar (method or object) arguments to Filter.methods when defining just one
