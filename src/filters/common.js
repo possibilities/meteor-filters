@@ -138,7 +138,7 @@ Filter.loadFiltersForMethod = function(methodName) {
 // Makes an array from a scalar unless it's undefined
 Filter._makeArrayOrUndefined = function(val) {
   var arrayVal = val;
-  if (!_.isUndefined(arrayVal) && !_.isArray(arrayVal)) {
+  if (_.isDefined(arrayVal) && !_.isArray(arrayVal)) {
     arrayVal = [arrayVal];
   }
   return arrayVal;
@@ -180,7 +180,12 @@ Filter._parseConfiguration = function(filters) {
     next = filters.shift();
 
     // Allow passing in a filter handler followed by a configuration literal
-    if (_.isFunction(filter) && !_.isUndefined(next) && !_.isFunction(next) && _.isUndefined(next['filter'])) {
+    if (_.isFunction(filter)
+        && _.isDefined(next)
+        && !_.isFunction(next)
+        && _.isUndefined(next['filter'])) {
+
+      // Merge em'
       handler = filter;
       next['handler'] = handler;
       filter = next;

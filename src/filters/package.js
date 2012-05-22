@@ -6,6 +6,7 @@ Package.on_use(function (api) {
   api.use('livedata', 'server');
   api.use('underscore', ['server', 'client']);
 
+  api.add_files('utils.js', ['server', 'client']);
   api.add_files('common.js', ['server', 'client']);
   api.add_files('server.js', 'server');
   api.add_files('client.js', 'client');
