@@ -1,10 +1,8 @@
 # Middleware Filters for Meteor
 
-Filters for `Meteor.methods` on the server and `Meteor.call` and `Meteor.apply` on the client.
-
 ## What problem does this solve?
 
-The whole point of this library is to avoid boilerplate code and duplication. Let's say you have some `Meteor.method`s that looks like this:
+The whole point of this library is to avoid boilerplate code and duplication. Let's say you have some `Meteor.methods` that looks like this:
 
     Meteor.methods({
 
