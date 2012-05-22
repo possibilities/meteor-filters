@@ -75,6 +75,10 @@ Filter.applyFilters = function(methodName, args) {
       delete context._returnValue;
 
       // Make sure we have an array and not a scalar
+      if (_.isArguments(args))
+        args = _.toArray(args);
+
+      // Make sure we have an array and not a scalar
       if (!_.isArray(args))
         args = [args];
     });

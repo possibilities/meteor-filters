@@ -43,4 +43,8 @@ Tinytest.add("filters - server", function (test) {
   // Make sure the test filter can return false
   var testResult = Meteor.call('testMethodReturnsFalse');
   test.equal(testResult, 'falseFunk');
+
+  // Make sure the test filter can return js `arguments`
+  var testResult = Meteor.call('testMethodReturnsJSArguments', 'punk');
+  test.equal(testResult, 'punkFunk');
 });

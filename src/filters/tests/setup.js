@@ -14,6 +14,7 @@ Meteor.methods({
   testMethodMultiFilterContext: testMethod,
   testMethodReturnsNothing: testMethod,
   testMethodReturnsFalse: testMethod,
+  testMethodReturnsJSArguments: testMethod,
   echoArgument: function(funk) {
     return funk;
   }
@@ -75,6 +76,10 @@ var testFilterReturnsFalse = function(funk) {
   return false;
 };
 
+var testFilterReturnsJSArguments = function(funk) {
+  return arguments;
+};
+
 Filter.methods([
   testFilter, { only: 'testMethod' },
   testFilterCallsNext, { only: 'testMethodCallsNext' },
@@ -89,7 +94,8 @@ Filter.methods([
   testFilterMultiFilterContext3, { only: 'testMethodMultiFilterContext' },
   testFilterForMethodDefinedInFuture, { only: 'testMethodDefinedInFuture' },
   testFilterReturnsNothing, { only: 'testMethodReturnsNothing' },
-  testFilterReturnsFalse, { only: 'testMethodReturnsFalse' }
+  testFilterReturnsFalse, { only: 'testMethodReturnsFalse' },
+  testFilterReturnsJSArguments, { only: 'testMethodReturnsJSArguments' }
 ]);
 
 Filter.methods([
