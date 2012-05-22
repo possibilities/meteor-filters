@@ -86,8 +86,8 @@ Next, define some filters
     };
 
     var countFilter = function(name) {
-      var person = Counts.findOne({ name: name })
-      if (person) {
+      var countForPerson = Counts.findOne({ name: name })
+      if (countForPerson) {
         Counts.update({ name: name }, { $inc: { count: 1 } })
       } else {
         Counts.insert({ name: name, count: 1 })
