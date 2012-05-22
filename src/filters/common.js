@@ -46,43 +46,39 @@ Filter.applyFilters = function(methodName, args) {
   // Put `next` convenience method at the end the filter's call arguments
   args.push(context.next);
 
-  // If we have any applicable filters use em'
-  if (filters.length > 0) {
+  // Apply each filter
+  _.each(filters, function(filter) {
 
-    // Apply each filter
-    _.each(Filter._registry[methodName].filters, function(filter) {
+    // If we're on the server we've know the filter applies, on the client
+    // we have to check at runtime
+    if (Meteor.is_client && !filter.appliesTo(callMethod))
+      return;
 
-      // If we're on the server we've know the filter applies, on the client
-      // we have to check at runtime
-      if (Meteor.is_client && !filter.appliesTo(callMethod))
-        return;
+    // Keep track of previous args in case filter returns nothing
+    var beforeArgs = _.clone(args);
 
-      // Keep track of previous args in case filter returns nothing
-      var beforeArgs = _.clone(args);
+    args = filter.handler.apply(context, args);
 
-      args = filter.handler.apply(context, args);
+    // Get next args from
+    //    1) next() ret value, or
+    //    2) filter ret value, or
+    //    3) pass on the orignal args
+    if (context._returnValue)
+      args = context._returnValue;
+    else
+      args = _.isBoolean(args) ? args : (args || beforeArgs);
 
-      // Get next args from
-      //    1) next() ret value, or
-      //    2) filter ret value, or
-      //    3) pass on the orignal args
-      if (context._returnValue)
-        args = context._returnValue;
-      else
-        args = _.isBoolean(args) ? args : (args || beforeArgs);
+    // Clear out the previous value
+    delete context._returnValue;
 
-      // Clear out the previous value
-      delete context._returnValue;
+    // Make sure we have an array and not a scalar
+    if (_.isArguments(args))
+      args = _.toArray(args);
 
-      // Make sure we have an array and not a scalar
-      if (_.isArguments(args))
-        args = _.toArray(args);
-
-      // Make sure we have an array and not a scalar
-      if (!_.isArray(args))
-        args = [args];
-    });
-  }
+    // Make sure we have an array and not a scalar
+    if (!_.isArray(args))
+      args = [args];
+  });
 
   // Get rid of `next` convenience method if it's still hanging around
   if (_.last(args) === context.next)
@@ -187,11 +183,11 @@ Filter._parseConfiguration = function(filters) {
     if (_.isFunction(filter)
         && _.isDefined(next)
         && !_.isFunction(next)
-        && _.isUndefined(next['filter'])) {
+        && _.isUndefined(next.filter)) {
 
       // Merge em'
       handler = filter;
-      next['handler'] = handler;
+      next.handler = handler;
       filter = next;
 
     // Otherwise just put it back
@@ -219,6 +215,8 @@ Filter._parseConfiguration = function(filters) {
 
 // Helpers
 FilterHelpers = {
+
+  // Check if a filter aught to be applied to a method
   appliesTo: function(methodName) {
 
     // Notice we're negating the whole this
