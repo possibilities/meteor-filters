@@ -1,11 +1,3 @@
-var numbers1 = [1, 2, 3];
-var master = [];
-_.each(numbers1, function(number) {
-  master.unshift(master);
-});
-console.log(numbers1);
-
-
 // Server side tests
 
 Tinytest.add("filters - server filters", function (test) {
