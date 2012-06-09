@@ -158,4 +158,6 @@ Returning nothing causes the current filter's arguments to be passed on as-is ma
 
 ## TODO
 
+Think more about client side method stubs, right now it's a problem because we're using Filter.methods to filter Meteor.call/apply
+
 Make the examples suck a lot less
