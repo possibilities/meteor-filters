@@ -5,7 +5,7 @@ var addFunkFilter = function(funk, next) {
 };
 
 Filter.methods([
-  addFunkFilter, { only: 'testMethod' }
+  { callHandler: addFunkFilter, only: 'testMethod' }
 ]);
 
 testAsyncMulti("filters - client filters", [

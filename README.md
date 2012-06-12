@@ -120,9 +120,18 @@ If you only have one filter just slap it in there in all it's scalar glory
 
     Filter.methods({ handler: howdyFilter, only: 'southernMethod' });
 
-### Client-side
+### Call handlers
 
-TODO
+Being able to apply filters to `Meteor.methods` that do common work is helpful but sometimes you'll find that when you're making calls from the client using `Meteor.call` and `Meteor.apply` you end up with boilerplate code that prepares the arguments. Call handlers help by letting you define this behavior as a filter that gets applied when you invoke `Meteor.call` and `Meteor.apply`. Think of the bank example where every `Meteor.call` needs the to get the bank account number from the environment and every `Meteor.method` needs to verify the account number. Your filter setup might look like this:
+
+    Filter.methods([
+      {
+        handler: verifyAccountNumber,
+        callHandler: prependAccountNumberToArguments
+      }
+    ]);
+
+Some libraries, like session management or analytics, for example, can use this feature to add transparent functionality to all (or some) functionality by adding arguments with a call handler and removing them with the method handler before they reach the actual `Meteor.method`.
 
 ### Writing filters (client or server)
 

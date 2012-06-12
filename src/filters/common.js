@@ -3,27 +3,32 @@ var Filter = { _registry: {} };
 // Prepare target `Meteor.methods` for filtering
 Filter.prepareMethods = function(methods) {
   var self = this;
-  var methodObj;
 
   // Wrap methods so we can hook into filters at run time
   _.each(methods, function(method, methodName) {
+    methods[methodName] = self._wrapMethod(method, methodName);
+  });
+};
 
-    // Figure out where the wrapped method should be assigned
-    methodObj = Meteor.is_server ? methods : Meteor;
-  
-    // Wrap method
-    methodObj[methodName] = self._wrapMethod(method, methodName);
+Filter.prepareCallMethods = function() {
+  var self = this;
+
+  // Wrap methods so we can hook into filters at run time
+  _.each(['call', 'apply'], function(methodName) {
+    Meteor[methodName] = self._wrapMethod(Meteor[methodName], methodName, true);
   });
 };
 
 // Apply the actual filters (at run time)
-Filter.applyFilters = function(methodName, args) {
+Filter.applyFilters = function(wrappedMethodName, calledMethodName, isCallHandler, args) {
   var callback;
   var self = this;
-  var filters = Filter._registry[methodName].filters;
+  var filters = Filter._registry[wrappedMethodName].filters;
 
-  // On the client the call method name is dynamic
-  var callMethod = Meteor.is_client ? args.shift() : methodName;
+  // If we're working on a callMethod remove the called method
+  // name from the arguments list
+  if (isCallHandler)
+    args.shift()
 
   // A method for catching return value from filter
   self.next = function next() {
@@ -31,8 +36,8 @@ Filter.applyFilters = function(methodName, args) {
     return self._returnValue;
   };
 
-  // On the client we need to mess around with args
-  if (Meteor.is_client) {
+  // For call handler we need to mess with the arguments
+  if (isCallHandler) {
 
     // Hold onto the callback for later
     callback = args.pop();
@@ -49,15 +54,21 @@ Filter.applyFilters = function(methodName, args) {
   // Apply each filter
   _.each(filters, function(filter) {
 
-    // If we're on the server we've know the filter applies, on the client
-    // we have to check at runtime
-    if (Meteor.is_client && !filter.appliesTo(callMethod))
+    // For regular filters we've already figured out if the filter
+    // is applicable to the method being called. For call handlers
+    // we figure it out at runtime
+    if (isCallHandler && !filter.appliesTo(calledMethodName))
       return;
 
     // Keep track of previous args in case filter returns nothing
     var beforeArgs = _.clone(args);
 
-    args = filter.handler.apply(self, args);
+
+    if (isCallHandler && filter.callHandler) {
+      args = filter.callHandler.apply(self, args);
+    } else {
+      args = filter.handler.apply(self, args);
+    }
 
     // Get next args from
     //    1) next() ret value, or
@@ -84,15 +95,15 @@ Filter.applyFilters = function(methodName, args) {
   if (_.last(args) === self.next)
     args.pop();
 
-  // On the client we need to undo the work on args we did eariler
-  if (Meteor.is_client) {
+  // For call handlers we need to undo the work on args we did eariler
+  if (isCallHandler) {
 
     // Put the callback back if there's one
     if (_.isFunction(callback))
       args.push(callback);
 
     // Get the method name back in front of the other arguments
-    args.unshift(callMethod);
+    args.unshift(calledMethodName);
   }
 
   // Return the args and self to be used by the target method
@@ -112,24 +123,24 @@ Filter.methods = function(filters) {
 
 // Load the method's filters, we run this only the first time
 // the method gets executed
-Filter.loadFilters = function(methodName) {
+Filter.loadFilters = function(wrappedMethodName, calledMethodName, isCallHandler) {
   var self = this;
 
   // We haven't loaded this method's filters yet
-  if (!self._registry[methodName]) {
+  if (!self._registry[wrappedMethodName]) {
 
     // Default registry entry
-    self._registry[methodName] = self._registry[methodName] || {
+    self._registry[wrappedMethodName] = self._registry[wrappedMethodName] || {
       filters: []
     };
 
     // Add each method filter for the method to the registry
     _.each(self._filters, function(filter, index) {
       
-      // If we're on the server we check that the filter should apply to method,
-      // on the client we do this at runtime
-      if (Meteor.is_client || filter.appliesTo(methodName))
-        self._registry[methodName].filters.unshift(filter);
+      // For regular methods we check of it applies, for call handlers
+      // we have to wait until runtime
+      if (isCallHandler || filter.appliesTo(wrappedMethodName))
+        self._registry[wrappedMethodName].filters.unshift(filter);
 
     });
   }
@@ -146,24 +157,24 @@ Filter._makeArrayOrUndefined = function(val) {
 
 // Instrument the method so that it loads and applies filters to
 // itself at runtime.
-Filter._wrapMethod = function _wrapMethod(method, methodName) {
+Filter._wrapMethod = function _wrapMethod(method, wrappedMethodName, isCallHandler) {
   var self = this;
 
   // return wrapped method
   return function() {
     var args = _.toArray(arguments);
-    var callMethod = Meteor.is_client ? _.first(args) : methodName;
+    var calledMethodName = isCallHandler ? _.first(args) : wrappedMethodName;
 
     // Damn shame we have to do this here but I don't see any other
     // way to have tests not broken
-    if (callMethod === 'tinytest/run')
+    if (calledMethodName === 'tinytest/run')
       return method.apply(this, args);
 
     // If we haven't already, load the filters for this method
-    self.loadFilters(methodName);
+    self.loadFilters(wrappedMethodName, calledMethodName, isCallHandler);
     
     // Do the actual business of running each filter
-    var ret = self.applyFilters.call(this, methodName, args);
+    var ret = self.applyFilters.call(this, wrappedMethodName, calledMethodName, isCallHandler, args);
     
     // Run the original method with the filtered context and arguments
     return method.apply(ret.context, ret.args);
@@ -232,3 +243,18 @@ FilterHelpers = {
     );
   }
 };
+
+// Filter Meteor.methods
+
+// Cache original method
+Meteor._original_methods = Meteor.methods;
+Meteor.methods = function(methods) {
+
+  // Wrap methods so we can hook into filters at run time
+  Filter.prepareMethods(methods);
+  
+  return Meteor._original_methods.call(this, methods);
+};
+
+if (Meteor.is_client)
+  Filter.prepareCallMethods();
