@@ -1,147 +1,31 @@
-var Filter = { _registry: {} };
+var Filter = Filter || {};
 
-// Prepare target `Meteor.methods` for filtering
-Filter.prepareMethods = function(methods) {
-  var self = this;
+// FilterHelpers
 
-  // Wrap methods so we can hook into filters at run time
-  _.each(methods, function(method, methodName) {
-    methods[methodName] = self._wrapMethod(method, methodName);
-  });
-};
+FilterHelpers = {
+  appliesTo: function(methodName) {
+    // Notice we're negating the whole this
+    return !(
+      // It's not in the `only` list
+      (this.only && !_.contains(this.only, methodName))
+        ||
+      // Or it's on the `except` list
+      (this.except && _.contains(this.except, methodName))
+    );
+  },  
+  applyToMethods: function(methods) {
+    var self = this;
+    _.each(methods, function(handler, methodName) {
+      // Obey except/only on server (we figure out client at run time)
+      if (Meteor.is_server && !self.appliesTo(methodName)) {
+        return false;
+      }
 
-Filter.prepareCallMethods = function() {
-  var self = this;
-
-  // Wrap methods so we can hook into filters at run time
-  _.each(['call', 'apply'], function(methodName) {
-    Meteor[methodName] = self._wrapMethod(Meteor[methodName], methodName, true);
-  });
-};
-
-// Apply the actual filters (at run time)
-Filter.applyFilters = function(wrappedMethodName, calledMethodName, isCallHandler, args) {
-  var callback;
-  var self = this;
-  var filters = Filter._registry[wrappedMethodName].filters;
-
-  // If we're working on a callMethod remove the called method
-  // name from the arguments list
-  if (isCallHandler)
-    args.shift()
-
-  // A method for catching return value from filter
-  self.next = function next() {
-    self._returnValue = _.toArray(arguments);
-    return self._returnValue;
-  };
-
-  // For call handler we need to mess with the arguments
-  if (isCallHandler) {
-
-    // Hold onto the callback for later
-    callback = args.pop();
-
-    // If it's not a function put it back
-    if (!_.isFunction(callback))
-      args.push(callback);
-
-  }        
-
-  // Put `next` convenience method at the end the filter's call arguments
-  args.push(self.next);
-
-  // Apply each filter
-  _.each(filters, function(filter) {
-
-    // For regular filters we've already figured out if the filter
-    // is applicable to the method being called. For call handlers
-    // we figure it out at runtime
-    if (isCallHandler && !filter.appliesTo(calledMethodName))
-      return;
-
-    // Keep track of previous args in case filter returns nothing
-    var beforeArgs = _.clone(args);
-
-
-    if (isCallHandler && filter.callHandler) {
-      args = filter.callHandler.apply(self, args);
-    } else {
-      args = filter.handler.apply(self, args);
-    }
-
-    // Get next args from
-    //    1) next() ret value, or
-    //    2) filter ret value, or
-    //    3) pass on the orignal args
-    if (self._returnValue)
-      args = self._returnValue;
-    else
-      args = _.isBoolean(args) ? args : (args || beforeArgs);
-
-    // Clear out the previous value
-    delete self._returnValue;
-
-    // Make sure we have an array and not a scalar
-    if (_.isArguments(args))
-      args = _.toArray(args);
-
-    // Make sure we have an array and not a scalar
-    if (!_.isArray(args))
-      args = [args];
-  });
-
-  // Get rid of `next` convenience method if it's still hanging around
-  if (_.last(args) === self.next)
-    args.pop();
-
-  // For call handlers we need to undo the work on args we did eariler
-  if (isCallHandler) {
-
-    // Put the callback back if there's one
-    if (_.isFunction(callback))
-      args.push(callback);
-
-    // Get the method name back in front of the other arguments
-    args.unshift(calledMethodName);
-  }
-
-  // Return the args and self to be used by the target method
-  return {
-    args: args,
-    context: self
-  };
-};
-
-// Every time we add more method filters we need to push them 
-// into the _filters so we can get them later
-Filter.methods = function(filters) {
-  this._filters = this._filters || [];
-  this._filters.unshift(this._parseConfiguration(filters));
-  this._filters = _.flatten(this._filters);
-};
-
-// Load the method's filters, we run this only the first time
-// the method gets executed
-Filter.loadFilters = function(wrappedMethodName, calledMethodName, isCallHandler) {
-  var self = this;
-
-  // We haven't loaded this method's filters yet
-  if (!self._registry[wrappedMethodName]) {
-
-    // Default registry entry
-    self._registry[wrappedMethodName] = self._registry[wrappedMethodName] || {
-      filters: []
-    };
-
-    // Add each method filter for the method to the registry
-    _.each(self._filters, function(filter, index) {
-      
-      // For regular methods we check of it applies, for call handlers
-      // we have to wait until runtime
-      if (isCallHandler || filter.appliesTo(wrappedMethodName))
-        self._registry[wrappedMethodName].filters.unshift(filter);
-
+      // Wrap original method
+      var wrappedMethod = Filter._wrapHandler(handler, self, methodName);
+      if (wrappedMethod) {
+        Meteor.default_server.method_handlers[methodName] = wrappedMethod;
+      }
     });
   }
 };
@@ -149,112 +33,131 @@ Filter.loadFilters = function(wrappedMethodName, calledMethodName, isCallHandler
 // Makes an array from a scalar unless it's undefined
 Filter._makeArrayOrUndefined = function(val) {
   var arrayVal = val;
-  if (_.isDefined(arrayVal) && !_.isArray(arrayVal))
+  if (!_.isUndefined(arrayVal) && !_.isArray(arrayVal)) {
     arrayVal = [arrayVal];
-
+  }
   return arrayVal;
 };
 
-// Instrument the method so that it loads and applies filters to
-// itself at runtime.
-Filter._wrapMethod = function _wrapMethod(method, wrappedMethodName, isCallHandler) {
-  var self = this;
-
-  // return wrapped method
-  return function() {
-    var args = _.toArray(arguments);
-    var calledMethodName = isCallHandler ? _.first(args) : wrappedMethodName;
-
-    // Damn shame we have to do this here but I don't see any other
-    // way to have tests not broken
-    if (calledMethodName === 'tinytest/run')
-      return method.apply(this, args);
-
-    // If we haven't already, load the filters for this method
-    self.loadFilters(wrappedMethodName, calledMethodName, isCallHandler);
-    
-    // Do the actual business of running each filter
-    var ret = self.applyFilters.call(this, wrappedMethodName, calledMethodName, isCallHandler, args);
-    
-    // Run the original method with the filtered context and arguments
-    return method.apply(ret.context, ret.args);
-  };
-};
-
-// Munge filter setup info so we can do cool shorthand configuration tricks
 Filter._parseConfiguration = function(filters) {
+  // Munge filter setup info so we can do cool shorthand configuration tricks
   var self = this;
   var handler, next;
   var normalized = [];
-  filters = this._makeArrayOrUndefined(filters);
 
   while (filter = filters.shift()) {
-    // Peek at the the next filter
     next = filters.shift();
-
     // Allow passing in a filter handler followed by a configuration literal
-    if (_.isFunction(filter)
-        && _.isDefined(next)
-        && !_.isFunction(next)
-        && _.isUndefined(next.filter)) {
-
-      // Merge em'
+    if (_.isFunction(filter) && !_.isUndefined(next) && !_.isFunction(next) && _.isUndefined(next['filter'])) {
       handler = filter;
-      next.handler = handler;
+      next['handler'] = handler;
       filter = next;
-
-    // Otherwise just put it back
     } else {
+      // Otherwise just put it back
       filters.unshift(next);
     }
-
     // Allow passing in a filter method without any configuration
-    if (_.isFunction(filter))
+    if (_.isFunction(filter)) {
       filter = { handler: filter };
-
+    }
     // Allow scalar values for `except` and `only` configuration
-    filter.except = self._makeArrayOrUndefined(filter.except);
-    filter.only = self._makeArrayOrUndefined(filter.only);
-
-    // Extend it
-    _.extend(filter, FilterHelpers);
+    filter.except = Filter._makeArrayOrUndefined(filter.except);
+    filter.only = Filter._makeArrayOrUndefined(filter.only);
 
     // Ok, it's ready
     normalized.unshift(filter);
   }
-
   return normalized;
 };
 
-// Helpers
-FilterHelpers = {
+Filter._wrapHandler = function(handler, filter, name) {
+  // TODO: this lives in multiple places
+  var isDataRoute = /^\/\w*\/(insert|update|remove)$|^.*tinytest.*$/i;
 
-  // Check if a filter aught to be applied to a method
-  appliesTo: function(methodName) {
-
-    // Notice we're negating the whole this
-    return !(
-
-      // It's not in the `only` list
-      (this.only && !_.contains(this.only, methodName))
-        ||
-      // Or it's on the `except` list
-      (this.except && _.contains(this.except, methodName))
-    );
+  if (isDataRoute.test(name)) {
+    return;
   }
+
+  _.extend(filter, FilterHelpers);
+
+  return function() {
+    var returnValue, val, callback, handlerContext, methodName;
+    var argumentsArray = _.toArray(arguments);
+
+    // Get the current method name
+    methodName = Meteor.is_server ? _.first(argumentsArray) : argumentsArray.shift();
+
+    // Don't mess around w/ it if it's one of Meteor's magic data methods
+    if (isDataRoute.test(methodName)) {
+      return handler.apply(this, arguments);
+    }
+
+    // Obey except/only on client (we figure out server at startup)
+    if (Meteor.is_client && !filter.appliesTo(methodName)) {
+      return handler.apply(this, arguments);
+    }
+
+    // A context for sharing data with the handler
+    var handlerContext = {
+      // A convenience method that we give to the filter for returning stuff
+      next: function() {
+        handlerContext.returnValue = _.toArray(arguments);
+      }
+    };
+    
+    // On the client we have to perform major surgery on
+    // arguments before and after the filter runs
+    // TODO: figure out how to do less at runtime
+    if (Meteor.is_client) {
+      
+      // Hold onto the callback for later
+      callback = argumentsArray.pop();
+      // If it's not a function put it back
+      if (!_.isFunction(callback)) {
+        argumentsArray.push(callback);
+      }
+
+      // Add the `next` convenience method to the end of the 
+      // filter's call arguments
+      argumentsArray.push(handlerContext.next);
+
+      // Run the filter finally!
+      returnValue = filter.handler.apply(handlerContext, argumentsArray);
+
+      // Get rid of next convenience method
+      if (_.isFunction(callback)) {
+        argumentsArray.splice(-2, 1);
+      }
+
+      // Figure out the results of the filter regardless of
+      // how the results are returned
+      val = (handlerContext.returnValue || returnValue);
+      
+      // If the results aren't an array make it so
+      argumentsArray = Filter._makeArrayOrUndefined(val);
+
+      // Put the callback back if there's one
+      if (_.isFunction(callback)) {
+        argumentsArray.push(callback);
+      }
+
+      // Get the method name back in front of the other arguments
+      argumentsArray.unshift(methodName);
+    } else {
+      // Put `next` convenience method at the end the filter's call arguments
+      argumentsArray.push(handlerContext.next);
+
+      // Apply the filter
+      returnValue = filter.handler.apply(handlerContext, argumentsArray);
+
+      // Figure out the results of the filter regardless of
+      // how the results are returned
+      val = (handlerContext.returnValue || returnValue);
+      // If the results aren't an array make it so
+      argumentsArray = Filter._makeArrayOrUndefined(val);
+    }
+
+    // Wheh! Return the wrapped filter
+    return handler.apply(handlerContext, argumentsArray);
+  };
 };
-
-// Filter Meteor.methods
-
-// Cache original method
-Meteor._original_methods = Meteor.methods;
-Meteor.methods = function(methods) {
-
-  // Wrap methods so we can hook into filters at run time
-  Filter.prepareMethods(methods);
-  
-  return Meteor._original_methods.call(this, methods);
-};
-
-if (Meteor.is_client)
-  Filter.prepareCallMethods();
