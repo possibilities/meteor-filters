@@ -3,6 +3,6 @@
   "description": "Middleware filters for Meteor.methods (and friends)",
   "homepage": "https://github.com/possibilities/meteor-filters",
   "author": "Mike Bannister <notimpossiblemike@gmail.com> (http://po.ssibiliti.es)",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "git": "https://github.com/possibilities/meteor-filters.git"
 }
