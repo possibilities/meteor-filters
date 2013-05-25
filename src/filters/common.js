@@ -1,4 +1,4 @@
-var Filter = { _registry: {} };
+Filter = { _registry: {} };
 
 // Prepare target `Meteor.methods` for filtering
 Filter.prepareMethods = function(methods) {
